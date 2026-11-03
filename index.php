@@ -53,13 +53,26 @@ function load_config(string $file_path): array
     return $vars;
 }
 
-$context = stream_context_create([
-    'http' => [
-        'method'  => 'GET',
-        'header'  => "User-Agent: v2rayN/7.25.6\r\n",
-        'timeout' => 10,
-    ],
-]);
+function fetch_url_content(string $url): string | false
+{
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'v2rayN/7.25.6');
+
+    $response  = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    if ($response === false || $http_code !== 200) {
+        return false;
+    }
+
+    return $response;
+}
 
 $output_nodes = [];
 
@@ -76,7 +89,7 @@ foreach ($files as $file) {
     $prefix  = (string) ($item["prefix"] ?? "");
 
     if ($sub !== "") {
-        $response = @file_get_contents($sub, false, $context);
+        $response = fetch_url_content($sub);
         if ($response === false) {
             $response = "vless://none@localhost:65535#请求失败";
         }
